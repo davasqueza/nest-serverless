@@ -1,4 +1,5 @@
 const TerserPlugin = require('terser-webpack-plugin');
+const nodeExternals = require('webpack-node-externals');
 
 module.exports = (options, webpack) => {
   const lazyImports = [
@@ -12,7 +13,7 @@ module.exports = (options, webpack) => {
       ...options.output,
       libraryTarget: 'commonjs2',
     },
-    externals: [],
+    externals: [nodeExternals()],
     plugins: [
       ...options.plugins,
       new webpack.IgnorePlugin({
