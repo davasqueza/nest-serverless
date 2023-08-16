@@ -2,13 +2,16 @@ import { Injectable } from '@nestjs/common';
 import { NewRecipeInput } from './dto/new-recipe.input';
 import { Recipe } from './models/recipe.model';
 import { RecipesArgs } from './dto/recipes.args';
-import { InjectRecipesRepository } from './repositories/recipes.repository';
+import {
+  InjectRecipesRepository,
+  RecipesRepository,
+} from './repositories/recipes.repository';
 
 @Injectable()
 export class RecipesService {
   constructor(
     @InjectRecipesRepository()
-    private recipesRepository: RecipesService,
+    private recipesRepository: RecipesRepository,
   ) {}
 
   create(data: NewRecipeInput): Promise<Recipe> {
@@ -17,6 +20,10 @@ export class RecipesService {
 
   findOneById(id: string): Promise<Recipe> {
     return this.recipesRepository.findOneById(id);
+  }
+
+  findManyByAuthorId(id: string): Promise<Recipe[]> {
+    return this.recipesRepository.findManyByAuthorId(id);
   }
 
   findAll(recipesArgs: RecipesArgs): Promise<Recipe[]> {

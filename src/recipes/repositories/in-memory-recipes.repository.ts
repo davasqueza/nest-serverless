@@ -20,6 +20,12 @@ export class InMemoryRecipesRepository implements RecipesRepository {
     return this.recipes.get(id);
   }
 
+  async findManyByAuthorId(id: string): Promise<Recipe[]> {
+    return [...this.recipes.values()].filter(
+      (recipe) => recipe.authorId === id,
+    );
+  }
+
   async findAll(recipesArgs: RecipesArgs): Promise<Recipe[]> {
     const list = Array.from(this.recipes.values());
     return list.slice(recipesArgs.skip, recipesArgs.take + list.length);

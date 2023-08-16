@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { RecipesResolver } from './recipes.resolver';
 import { RecipesService } from './recipes.service';
 import { RecipesRepositoryToken } from './repositories/recipes.repository';
@@ -6,7 +6,7 @@ import { InMemoryRecipesRepository } from './repositories/in-memory-recipes.repo
 import { AuthorModule } from '../author/author.module';
 
 @Module({
-  imports: [AuthorModule],
+  imports: [forwardRef(() => AuthorModule)],
   providers: [
     RecipesResolver,
     RecipesService,
@@ -16,5 +16,6 @@ import { AuthorModule } from '../author/author.module';
       useClass: InMemoryRecipesRepository,
     },
   ],
+  exports: [RecipesService],
 })
 export class RecipesModule {}
