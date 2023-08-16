@@ -8,7 +8,7 @@ import { InjectRecipesRepository } from './repositories/recipes.repository';
 export class RecipesService {
   constructor(
     @InjectRecipesRepository()
-    private recipesRepository,
+    private recipesRepository: RecipesService,
   ) {}
 
   create(data: NewRecipeInput): Promise<Recipe> {

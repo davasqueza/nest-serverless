@@ -14,5 +14,6 @@ import { InMemoryAuthorRepository } from './repositories/in-memory-author.reposi
       useClass: InMemoryAuthorRepository,
     },
   ],
+  exports: [AuthorService],
 })
 export class AuthorModule {}

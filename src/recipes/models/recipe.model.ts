@@ -1,4 +1,5 @@
-import { Field, ID, ObjectType } from '@nestjs/graphql';
+import { Field, HideField, ID, ObjectType } from '@nestjs/graphql';
+import { Author } from '../../author/models/author.model';
 
 @ObjectType({ description: 'recipe ' })
 export class Recipe {
@@ -16,4 +17,10 @@ export class Recipe {
 
   @Field(() => [String])
   ingredients: string[];
+
+  @HideField()
+  authorId: string;
+
+  @Field(() => Author)
+  author: Author;
 }
