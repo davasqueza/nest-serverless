@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { GraphQLModule } from '@nestjs/graphql';
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { RecipesModule } from './recipes/recipes.module';
+import { AuthorModule } from './author/author.module';
 
 @Module({
   imports: [
@@ -9,6 +10,7 @@ import { RecipesModule } from './recipes/recipes.module';
       driver: ApolloDriver,
       autoSchemaFile: true,
     }),
+    AuthorModule,
     RecipesModule,
   ],
 })
