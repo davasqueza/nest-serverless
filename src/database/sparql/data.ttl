@@ -1,0 +1,36 @@
+@prefix dvs: <http://davasqueza.com/schema/1.0/> .
+@prefix person: <http://schema.org/Person#> .
+
+dvs:fec49688-d0d1-47e2-9ca7-8574664f01fb a dvs:Author ;
+    dvs:uuid "fec49688-d0d1-47e2-9ca7-8574664f01fb" ;
+    person:name "Diego" ;
+    dvs:hasRecipe dvs:3d127cac-7874-455d-834c-05596552ac23 ;
+    dvs:hasRecipe dvs:b48457a2-2ff0-41b8-a15a-0b73e567c918 .
+
+dvs:dc84af82-0029-48c6-8962-d991bb681bbe a dvs:Author ;
+    dvs:uuid "dc84af82-0029-48c6-8962-d991bb681bbe" ;
+    person:name "Carlos" .
+
+dvs:adf95ca8-8569-4799-a23c-193c1f04da6b a dvs:Author ;
+    dvs:uuid "adf95ca8-8569-4799-a23c-193c1f04da6b" ;
+    person:name "Juan" .
+
+dvs:3d127cac-7874-455d-834c-05596552ac23 a dvs:Recipe;
+    dvs:uuid "3d127cac-7874-455d-834c-05596552ac23" ;
+    dvs:title "Soup" ;
+    dvs:description "A regular soup" ;
+    dvs:creationDate "2023-08-25T21:27:07.016Z" ;
+    dvs:ingredient "Water" ;
+    dvs:ingredient "Salt" ;
+    dvs:ingredient "Potato" ;
+    dvs:createdBy dvs:fec49688-d0d1-47e2-9ca7-8574664f01fb .
+
+dvs:b48457a2-2ff0-41b8-a15a-0b73e567c918 a dvs:Recipe;
+    dvs:uuid "b48457a2-2ff0-41b8-a15a-0b73e567c918" ;
+    dvs:title "Chocolate ice cream" ;
+    dvs:description "A delicious chocolate ice cream" ;
+    dvs:creationDate "2023-08-25T22:27:07.016Z" ;
+    dvs:ingredient "Ice" ;
+    dvs:ingredient "Chocolate" ;
+    dvs:ingredient "Sugar" ;
+    dvs:createdBy dvs:fec49688-d0d1-47e2-9ca7-8574664f01fb .
