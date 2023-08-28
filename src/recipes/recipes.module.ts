@@ -2,8 +2,8 @@ import { forwardRef, Module } from '@nestjs/common';
 import { RecipesResolver } from './recipes.resolver';
 import { RecipesService } from './recipes.service';
 import { RecipesRepositoryToken } from './repositories/recipes.repository';
-import { InMemoryRecipesRepository } from './repositories/in-memory-recipes.repository';
 import { AuthorModule } from '../author/author.module';
+import { SparqlRecipesRepository } from './repositories/sparql-recipes.repository';
 
 @Module({
   imports: [forwardRef(() => AuthorModule)],
@@ -12,8 +12,7 @@ import { AuthorModule } from '../author/author.module';
     RecipesService,
     {
       provide: RecipesRepositoryToken,
-      // TODO: Implement a neptune repository using N3: https://github.com/rdfjs/N3.js
-      useClass: InMemoryRecipesRepository,
+      useClass: SparqlRecipesRepository,
     },
   ],
   exports: [RecipesService],

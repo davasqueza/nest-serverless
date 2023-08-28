@@ -5,7 +5,10 @@ import { RecipesArgs } from '../dto/recipes.args';
 import { SPARQLQueryExecutor } from '../../database/sparql/sparql.type';
 import { InjectSPARQLQueryExecutor } from '../../database/sparql/sparql.provider';
 import * as sparql from 'rdf-sparql-builder';
+import { Func } from 'rdf-sparql-builder/lib/Func';
+import { Aggregate } from 'rdf-sparql-builder/lib/Aggregate';
 import rdf from '@rdfjs/data-model';
+import { ns } from '../../database/sparql/sparql.const';
 export class SparqlRecipesRepository implements RecipesRepository {
   constructor(
     @InjectSPARQLQueryExecutor()
@@ -16,17 +19,40 @@ export class SparqlRecipesRepository implements RecipesRepository {
   }
 
   async findAll(recipesArgs: RecipesArgs): Promise<Recipe[]> {
+    const recipe = rdf.variable('recipe');
     const id = rdf.variable('id');
     const title = rdf.variable('title');
     const description = rdf.variable('description');
     const creationDate = rdf.variable('creationDate');
-    const ingredients = rdf.variable('ingredients');
+    const ingredient = rdf.variable('ingredient');
+    const ingredientList = rdf.variable('ingredientList');
+    const author = rdf.variable('author');
     const authorId = rdf.variable('authorId');
+    const groupConcat = (as, ...args) =>
+      new Aggregate('', new Func('GROUP_CONCAT', args), as);
 
     const query = sparql
-      .select([id, title, description, creationDate, ingredients, authorId])
-      // TODO: Finish query, ingredients using GROUP_CONCAT
-      .where()
+      .select([
+        id,
+        title,
+        description,
+        creationDate,
+        groupConcat(ingredientList, ingredient, 'separator=","'),
+        authorId,
+      ])
+      .where([
+        [recipe, ns.a, ns.dvs.Recipe],
+        [recipe, ns.dvs.uuid, id],
+        [recipe, ns.dvs.title, title],
+        [recipe, ns.dvs.description, description],
+        [recipe, ns.dvs.creationDate, creationDate],
+
+        [recipe, ns.dvs.ingredient, ingredient],
+
+        [recipe, ns.dvs.createdBy, author],
+        [author, ns.dvs.uuid, authorId],
+      ])
+      .groupBy(id)
       .limit(recipesArgs.take * recipesArgs.skip)
       .offset(recipesArgs.take);
 
