@@ -13,7 +13,15 @@ module.exports = (options, webpack) => {
       ...options.output,
       libraryTarget: 'commonjs2',
     },
-    externals: [nodeExternals()],
+    externals: [
+      nodeExternals({
+        allowlist: [
+          'rdf-sparql-builder',
+          '@rdfjs/data-model',
+          '@rdfjs/namespace',
+        ],
+      }),
+    ],
     plugins: [
       ...options.plugins,
       new webpack.IgnorePlugin({
