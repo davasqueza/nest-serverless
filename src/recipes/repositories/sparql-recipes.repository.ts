@@ -5,8 +5,6 @@ import { RecipesArgs } from '../dto/recipes.args';
 import { SPARQLQueryExecutor } from '../../database/sparql/sparql.type';
 import { InjectSPARQLQueryExecutor } from '../../database/sparql/sparql.provider';
 import * as sparql from 'rdf-sparql-builder';
-import { Func } from 'rdf-sparql-builder/lib/Func';
-import { Aggregate } from 'rdf-sparql-builder/lib/Aggregate';
 import rdf from '@rdfjs/data-model';
 import { ns } from '../../database/sparql/sparql.const';
 export class SparqlRecipesRepository implements RecipesRepository {
@@ -25,11 +23,8 @@ export class SparqlRecipesRepository implements RecipesRepository {
     const description = rdf.variable('description');
     const creationDate = rdf.variable('creationDate');
     const ingredient = rdf.variable('ingredient');
-    const ingredientList = rdf.variable('ingredientList');
     const author = rdf.variable('author');
     const authorId = rdf.variable('authorId');
-    const groupConcat = (as, ...args) =>
-      new Aggregate('', new Func('GROUP_CONCAT', args), as);
 
     const query = sparql
       .select([
@@ -37,24 +32,22 @@ export class SparqlRecipesRepository implements RecipesRepository {
         title,
         description,
         creationDate,
-        groupConcat(ingredientList, ingredient, 'separator=","'),
+        '(group_concat(?ingredient ; separator="|") as ?ingredients)',
         authorId,
       ])
       .where([
-        [recipe, ns.a, ns.dvs.Recipe],
+        [recipe, ns.rdf.type, ns.dvs.Recipe],
         [recipe, ns.dvs.uuid, id],
         [recipe, ns.dvs.title, title],
         [recipe, ns.dvs.description, description],
         [recipe, ns.dvs.creationDate, creationDate],
-
         [recipe, ns.dvs.ingredient, ingredient],
-
         [recipe, ns.dvs.createdBy, author],
         [author, ns.dvs.uuid, authorId],
       ])
-      .groupBy(id)
-      .limit(recipesArgs.take * recipesArgs.skip)
-      .offset(recipesArgs.take);
+      .groupBy([id, title, description, creationDate, authorId])
+      .limit(recipesArgs.take)
+      .offset(recipesArgs.take * recipesArgs.skip);
 
     const bindingsStream = await this.queryExecutor(query.toString());
     const bindings = await bindingsStream.toArray();
@@ -65,7 +58,7 @@ export class SparqlRecipesRepository implements RecipesRepository {
       recipe.title = binding.get('title').value;
       recipe.description = binding.get('description').value;
       recipe.creationDate = new Date(binding.get('creationDate').value);
-      recipe.ingredients = binding.get('ingredients').value.split(',');
+      recipe.ingredients = binding.get('ingredients').value.split('|');
       recipe.authorId = binding.get('authorId').value;
 
       return recipe;
