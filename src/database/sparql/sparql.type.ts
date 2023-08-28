@@ -11,3 +11,7 @@ export type SPARQLQueryExecutor = (
   query: Query,
   context?: Context,
 ) => Promise<BindingsStream>;
+export type SPARQLUpdateExecutor = (
+  query: Query,
+  context?: Context,
+) => Promise<void>;
