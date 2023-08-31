@@ -14,6 +14,8 @@ import * as sparql from 'rdf-sparql-builder';
 import rdf from '@rdfjs/data-model';
 import { ns } from '../../database/sparql/sparql.const';
 import { Bindings } from '@comunica/types';
+import { v4 as uuidv4 } from 'uuid';
+
 export class SparqlRecipesRepository implements RecipesRepository {
   constructor(
     @InjectSPARQLQueryExecutor()
@@ -21,8 +23,45 @@ export class SparqlRecipesRepository implements RecipesRepository {
     @InjectSPARQLUpdateExecutor()
     private updateExecutor: SPARQLUpdateExecutor,
   ) {}
-  create(data: NewRecipeInput): Promise<Recipe> {
-    return Promise.resolve(undefined);
+
+  async create(data: NewRecipeInput): Promise<Recipe> {
+    const newRecipe: Recipe = Object.assign(new Recipe(), {
+      ...data,
+      id: uuidv4(),
+      creationDate: new Date(),
+    });
+
+    const recipe = rdf.variable('recipe');
+    const id = rdf.literal(newRecipe.id);
+    const title = rdf.literal(newRecipe.title);
+    const description = rdf.literal(newRecipe.description);
+    const creationDate = rdf.literal(newRecipe.creationDate.toISOString());
+    const ingredients = newRecipe.ingredients.map((ingredient) => [
+      recipe,
+      ns.dvs.ingredient,
+      rdf.literal(ingredient),
+    ]);
+    const author = rdf.variable('author');
+    const authorId = rdf.literal(newRecipe.authorId);
+
+    const query = sparql
+      .delete([
+        [recipe, ns.rdf.type, ns.dvs.Recipe],
+        [recipe, ns.dvs.uuid, id],
+        [recipe, ns.dvs.title, title],
+        [recipe, ns.dvs.description, description],
+        [recipe, ns.dvs.creationDate, creationDate],
+        ingredients,
+        [recipe, ns.dvs.createdBy, author],
+        [author, ns.dvs.uuid, authorId],
+        [author, ns.dvs.hasRecipe, id],
+      ])
+      .toString()
+      .replace(/^DELETE {/, 'INSERT DATA {');
+
+    await this.updateExecutor(query);
+
+    return newRecipe;
   }
 
   async findAll(recipesArgs: RecipesArgs): Promise<Recipe[]> {
