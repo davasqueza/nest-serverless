@@ -31,7 +31,7 @@ export class SparqlRecipesRepository implements RecipesRepository {
       creationDate: new Date(),
     });
 
-    const recipe = rdf.variable('recipe');
+    const recipe = ns.dvs[newRecipe.id];
     const id = rdf.literal(newRecipe.id);
     const title = rdf.literal(newRecipe.title);
     const description = rdf.literal(newRecipe.description);
@@ -41,8 +41,7 @@ export class SparqlRecipesRepository implements RecipesRepository {
       ns.dvs.ingredient,
       rdf.literal(ingredient),
     ]);
-    const author = rdf.variable('author');
-    const authorId = rdf.literal(newRecipe.authorId);
+    const author = ns.dvs[newRecipe.authorId];
 
     const query = sparql
       .delete([
@@ -51,9 +50,8 @@ export class SparqlRecipesRepository implements RecipesRepository {
         [recipe, ns.dvs.title, title],
         [recipe, ns.dvs.description, description],
         [recipe, ns.dvs.creationDate, creationDate],
-        ingredients,
+        ...ingredients,
         [recipe, ns.dvs.createdBy, author],
-        [author, ns.dvs.uuid, authorId],
         [author, ns.dvs.hasRecipe, id],
       ])
       .toString()
