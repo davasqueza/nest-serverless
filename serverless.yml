@@ -8,6 +8,14 @@ provider:
   name: aws
   runtime: nodejs16.x
 
+resources:
+  Resources:
+    NestPocNeptuneCluster:
+      Type: AWS::Neptune::DBCluster
+      Properties:
+        DBClusterIdentifier: nest-poc-neptune-cluster
+        DeletionProtection: false
+
 functions:
   main:
     handler: dist/main.handler
@@ -18,3 +26,12 @@ functions:
       - http:
           method: ANY
           path: '{proxy+}'
+    environment:
+      RECIPES_SPARQL_READ_ENDPOINT:
+        Fn::GetAtt:
+          - NestPocNeptuneCluster
+          - Endpoint
+      RECIPES_SPARQL_WRITE_ENDPOINT:
+        Fn::GetAtt:
+          - NestPocNeptuneCluster
+          - Endpoint
