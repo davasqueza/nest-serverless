@@ -15,6 +15,46 @@ resources:
       Properties:
         DBClusterIdentifier: nest-poc-neptune-cluster
         DeletionProtection: false
+        AvailabilityZones:
+          - us-east-2a
+          - us-east-2b
+        DBSubnetGroupName: !Ref NestPocDBSubnetGroup
+    NestPocVPC:
+      Type: AWS::EC2::VPC
+      Properties:
+        CidrBlock: 10.0.0.0/16
+        EnableDnsSupport: true
+        EnableDnsHostnames: true
+        Tags:
+          - Key: Name
+            Value: NestPocVPC
+    NestPocDBSubnetGroup:
+      Type: AWS::Neptune::DBSubnetGroup
+      Properties:
+        DBSubnetGroupDescription: Subnet group for Nest POC
+        SubnetIds:
+          - !Ref NestPocPrivateSubnet1
+          - !Ref NestPocPrivateSubnet2
+
+    NestPocPrivateSubnet1:
+      Type: AWS::EC2::Subnet
+      Properties:
+        VpcId: !Ref NestPocVPC
+        CidrBlock: 10.0.3.0/24
+        AvailabilityZone: us-east-2a
+
+    NestPocPrivateSubnet2:
+      Type: AWS::EC2::Subnet
+      Properties:
+        VpcId: !Ref NestPocVPC
+        CidrBlock: 10.0.4.0/24
+        AvailabilityZone: us-east-2b
+
+    NestPocDBClusterSecurityGroup:
+      Type: AWS::EC2::SecurityGroup
+      Properties:
+        GroupDescription: Security group for Nest POC DB cluster
+        VpcId: !Ref NestPocVPC
 
 functions:
   main:
@@ -26,12 +66,12 @@ functions:
       - http:
           method: ANY
           path: '{proxy+}'
+    vpc:
+      securityGroupIds:
+        - !GetAtt NestPocDBClusterSecurityGroup.GroupId
+      subnetIds:
+        - !Ref NestPocPrivateSubnet1
+        - !Ref NestPocPrivateSubnet2
     environment:
-      RECIPES_SPARQL_READ_ENDPOINT:
-        Fn::GetAtt:
-          - NestPocNeptuneCluster
-          - Endpoint
-      RECIPES_SPARQL_WRITE_ENDPOINT:
-        Fn::GetAtt:
-          - NestPocNeptuneCluster
-          - Endpoint
+      RECIPES_SPARQL_READ_ENDPOINT: !Sub 'http://${NestPocNeptuneCluster.ReadEndpoint}:${NestPocNeptuneCluster.Port}/sparql'
+      RECIPES_SPARQL_WRITE_ENDPOINT: !Sub 'http://${NestPocNeptuneCluster.Endpoint}:${NestPocNeptuneCluster.Port}/update'
