@@ -10,24 +10,31 @@ provider:
 
 resources:
   Resources:
-    NestPocNeptuneCluster:
-      Type: AWS::Neptune::DBCluster
-      Properties:
-        DBClusterIdentifier: nest-poc-neptune-cluster
-        DeletionProtection: false
-        AvailabilityZones:
-          - us-east-2a
-          - us-east-2b
-        DBSubnetGroupName: !Ref NestPocDBSubnetGroup
     NestPocVPC:
       Type: AWS::EC2::VPC
       Properties:
         CidrBlock: 10.0.0.0/16
         EnableDnsSupport: true
         EnableDnsHostnames: true
+        InstanceTenancy: default
         Tags:
           - Key: Name
             Value: NestPocVPC
+
+    NestPocPrivateSubnet1:
+      Type: AWS::EC2::Subnet
+      Properties:
+        VpcId: !Ref NestPocVPC
+        CidrBlock: 10.0.3.0/24
+        AvailabilityZone: us-east-1a
+
+    NestPocPrivateSubnet2:
+      Type: AWS::EC2::Subnet
+      Properties:
+        VpcId: !Ref NestPocVPC
+        CidrBlock: 10.0.4.0/24
+        AvailabilityZone: us-east-1b
+
     NestPocDBSubnetGroup:
       Type: AWS::Neptune::DBSubnetGroup
       Properties:
@@ -36,25 +43,43 @@ resources:
           - !Ref NestPocPrivateSubnet1
           - !Ref NestPocPrivateSubnet2
 
-    NestPocPrivateSubnet1:
-      Type: AWS::EC2::Subnet
-      Properties:
-        VpcId: !Ref NestPocVPC
-        CidrBlock: 10.0.3.0/24
-        AvailabilityZone: us-east-2a
-
-    NestPocPrivateSubnet2:
-      Type: AWS::EC2::Subnet
-      Properties:
-        VpcId: !Ref NestPocVPC
-        CidrBlock: 10.0.4.0/24
-        AvailabilityZone: us-east-2b
-
     NestPocDBClusterSecurityGroup:
       Type: AWS::EC2::SecurityGroup
       Properties:
         GroupDescription: Security group for Nest POC DB cluster
         VpcId: !Ref NestPocVPC
+        SecurityGroupIngress:
+          - CidrIp: 0.0.0.0/0
+            FromPort: 8182
+            ToPort: 8182
+            IpProtocol: tcp
+
+    NestPocNeptuneCluster:
+      Type: AWS::Neptune::DBCluster
+      Properties:
+        DBClusterIdentifier: nest-poc-neptune-cluster
+        DeletionProtection: false
+        AvailabilityZones:
+          - us-east-1a
+          - us-east-1b
+        DBSubnetGroupName: !Ref NestPocDBSubnetGroup
+        VpcSecurityGroupIds:
+          - !GetAtt NestPocVPC.DefaultSecurityGroup
+          - !Ref NestPocDBClusterSecurityGroup
+
+    NeptuneDBInstance:
+      Type: AWS::Neptune::DBInstance
+      Description: "Master Instance Endpoint"
+      Properties:
+        DBClusterIdentifier: !Ref NestPocNeptuneCluster
+        DBInstanceClass: db.t3.medium
+
+    DBReplicaInstanceEndpoint:
+      Type: AWS::Neptune::DBInstance
+      Description: "ReadReplica Instance Endpoint"
+      Properties:
+        DBClusterIdentifier: !Ref NestPocNeptuneCluster
+        DBInstanceClass: db.t3.medium
 
 functions:
   main:
@@ -73,5 +98,5 @@ functions:
         - !Ref NestPocPrivateSubnet1
         - !Ref NestPocPrivateSubnet2
     environment:
-      RECIPES_SPARQL_READ_ENDPOINT: !Sub 'http://${NestPocNeptuneCluster.ReadEndpoint}:${NestPocNeptuneCluster.Port}/sparql'
-      RECIPES_SPARQL_WRITE_ENDPOINT: !Sub 'http://${NestPocNeptuneCluster.Endpoint}:${NestPocNeptuneCluster.Port}/update'
+      RECIPES_SPARQL_READ_ENDPOINT: !Sub 'https://${NestPocNeptuneCluster.ReadEndpoint}:${NestPocNeptuneCluster.Port}/sparql'
+      RECIPES_SPARQL_WRITE_ENDPOINT: !Sub 'https://${NestPocNeptuneCluster.Endpoint}:${NestPocNeptuneCluster.Port}/update'
