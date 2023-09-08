@@ -99,4 +99,4 @@ functions:
         - !Ref NestPocPrivateSubnet2
     environment:
       RECIPES_SPARQL_READ_ENDPOINT: !Sub 'https://${NestPocNeptuneCluster.ReadEndpoint}:${NestPocNeptuneCluster.Port}/sparql'
-      RECIPES_SPARQL_WRITE_ENDPOINT: !Sub 'https://${NestPocNeptuneCluster.Endpoint}:${NestPocNeptuneCluster.Port}/update'
+      RECIPES_SPARQL_WRITE_ENDPOINT: !Sub 'https://${NestPocNeptuneCluster.Endpoint}:${NestPocNeptuneCluster.Port}/sparql'
