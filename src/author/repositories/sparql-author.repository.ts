@@ -13,8 +13,8 @@ import {
 import * as sparql from 'rdf-sparql-builder';
 import rdf from '@rdfjs/data-model';
 import { ns } from '../../database/sparql/sparql.const';
-import { Bindings } from '@comunica/types';
 import { v4 as uuidv4 } from 'uuid';
+import { AuthorEntity } from '../entities/author.entity';
 
 export class SparqlAuthorRepository implements AuthorRepository {
   constructor(
@@ -30,15 +30,14 @@ export class SparqlAuthorRepository implements AuthorRepository {
       id: uuidv4(),
     });
 
-    const author = ns.dvs[newAuthor.id];
-    const id = rdf.literal(newAuthor.id);
-    const name = rdf.literal(newAuthor.name);
+    const authorIRI = ns.dvs[newAuthor.id];
+    const authorEntity = AuthorEntity.modelToRDFTerms(newAuthor);
 
     const query = sparql
       .delete([
-        [author, ns.rdf.type, ns.dvs.Author],
-        [author, ns.dvs.uuid, id],
-        [author, ns.dvs.name, name],
+        [authorIRI, ns.rdf.type, AuthorEntity.authorNS],
+        [authorIRI, ns.dvs.uuid, authorEntity.id],
+        [authorIRI, ns.dvs.name, authorEntity.name],
       ])
       .toString()
       .replace(/^DELETE {/, 'INSERT DATA {');
@@ -49,16 +48,12 @@ export class SparqlAuthorRepository implements AuthorRepository {
   }
 
   async findAll(authorArgs: AuthorArgs): Promise<Author[]> {
-    const author = rdf.variable('author');
-    const id = rdf.variable('id');
-    const name = rdf.variable('name');
-
     const query = sparql
-      .select([id, name])
+      .select([AuthorEntity.id, AuthorEntity.fullName])
       .where([
-        [author, ns.rdf.type, ns.dvs.Author],
-        [author, ns.dvs.uuid, id],
-        [author, ns.dvs.name, name],
+        [AuthorEntity.author, ns.rdf.type, AuthorEntity.authorNS],
+        [AuthorEntity.author, ns.dvs.uuid, AuthorEntity.id],
+        [AuthorEntity.author, ns.dvs.name, AuthorEntity.fullName],
       ])
       .limit(authorArgs.take)
       .offset(authorArgs.take * authorArgs.skip);
@@ -66,51 +61,36 @@ export class SparqlAuthorRepository implements AuthorRepository {
     const bindingsStream = await this.queryExecutor(query.toString());
     const bindings = await bindingsStream.toArray();
 
-    return bindings.map((binding) => this.bindingsToModel(binding));
+    return bindings.map((binding) => AuthorEntity.bindingsToModel(binding));
   }
 
   async findOneById(authorId: string): Promise<Author> {
-    const author = rdf.variable('author');
-    const authorID = rdf.literal(authorId);
-    const bindAuthorId = rdf.variable('id');
-    const name = rdf.variable('name');
-
     const query = sparql
-      .select([bindAuthorId, name])
+      .select([AuthorEntity.id, AuthorEntity.fullName])
       .where([
-        [author, ns.rdf.type, ns.dvs.Author],
-        [author, ns.dvs.uuid, authorID],
-        sparql.bind(bindAuthorId, `"${authorId}"`),
-        [author, ns.dvs.name, name],
+        [AuthorEntity.author, ns.rdf.type, AuthorEntity.authorNS],
+        [AuthorEntity.author, ns.dvs.uuid, rdf.literal(authorId)],
+        sparql.bind(AuthorEntity.id, `"${authorId}"`),
+        [AuthorEntity.author, ns.dvs.name, AuthorEntity.fullName],
       ]);
 
     const bindingsStream = await this.queryExecutor(query.toString());
-    const bindings = await bindingsStream.toArray();
+    const [bindings] = await bindingsStream.toArray();
 
-    return this.bindingsToModel(bindings[0]);
+    return AuthorEntity.bindingsToModel(bindings);
   }
 
   async remove(authorId: string): Promise<boolean> {
-    const author = rdf.variable('author');
-    const authorID = rdf.literal(authorId);
     const allProperties = rdf.variable('allProperties');
     const allValues = rdf.variable('allValues');
 
     const query = sparql.delete().where([
-      [author, ns.rdf.type, ns.dvs.Author],
-      [author, ns.dvs.uuid, authorID],
-      [author, allProperties, allValues],
+      [AuthorEntity.author, ns.rdf.type, AuthorEntity.authorNS],
+      [AuthorEntity.author, ns.dvs.uuid, rdf.literal(authorId)],
+      [AuthorEntity.author, allProperties, allValues],
     ]);
 
     await this.updateExecutor(query.toString());
     return true;
-  }
-
-  private bindingsToModel(binding: Bindings): Author {
-    const author = new Author();
-    author.id = binding.get('id').value;
-    author.name = binding.get('name').value;
-
-    return author;
   }
 }
