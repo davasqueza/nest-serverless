@@ -13,8 +13,9 @@ import {
 import * as sparql from 'rdf-sparql-builder';
 import rdf from '@rdfjs/data-model';
 import { ns } from '../../database/sparql/sparql.const';
-import { Bindings } from '@comunica/types';
 import { v4 as uuidv4 } from 'uuid';
+import { RecipeEntity } from '../entities/recipe.entity';
+import { Term } from '@rdfjs/types';
 
 export class SparqlRecipesRepository implements RecipesRepository {
   constructor(
@@ -31,28 +32,19 @@ export class SparqlRecipesRepository implements RecipesRepository {
       creationDate: new Date(),
     });
 
-    const recipe = ns.dvs[newRecipe.id];
-    const id = rdf.literal(newRecipe.id);
-    const title = rdf.literal(newRecipe.title);
-    const description = rdf.literal(newRecipe.description);
-    const creationDate = rdf.literal(newRecipe.creationDate.toISOString());
-    const ingredients = newRecipe.ingredients.map((ingredient) => [
-      recipe,
-      ns.dvs.ingredient,
-      rdf.literal(ingredient),
-    ]);
-    const author = ns.dvs[newRecipe.authorId];
+    const recipeIRI = ns.dvs[newRecipe.id];
+    const recipeEntity = RecipeEntity.modelToRDFTerms(newRecipe);
 
     const query = sparql
       .delete([
-        [recipe, ns.rdf.type, ns.dvs.Recipe],
-        [recipe, ns.dvs.uuid, id],
-        [recipe, ns.dvs.title, title],
-        [recipe, ns.dvs.description, description],
-        [recipe, ns.dvs.creationDate, creationDate],
-        ...ingredients,
-        [recipe, ns.dvs.createdBy, author],
-        [author, ns.dvs.hasRecipe, id],
+        [recipeIRI, ns.rdf.type, RecipeEntity.recipeNS],
+        [recipeIRI, ns.dvs.uuid, recipeEntity.id],
+        [recipeIRI, ns.dvs.title, recipeEntity.title],
+        [recipeIRI, ns.dvs.description, recipeEntity.description],
+        [recipeIRI, ns.dvs.creationDate, recipeEntity.creationDate],
+        ...(recipeEntity.ingredients as Term[][]),
+        [recipeIRI, ns.dvs.createdBy, recipeEntity.author],
+        [recipeEntity.author, ns.dvs.hasRecipe, recipeEntity.id],
       ])
       .toString()
       .replace(/^DELETE {/, 'INSERT DATA {');
@@ -63,147 +55,122 @@ export class SparqlRecipesRepository implements RecipesRepository {
   }
 
   async findAll(recipesArgs: RecipesArgs): Promise<Recipe[]> {
-    const recipe = rdf.variable('recipe');
-    const id = rdf.variable('id');
-    const title = rdf.variable('title');
-    const description = rdf.variable('description');
-    const creationDate = rdf.variable('creationDate');
-    const ingredient = rdf.variable('ingredient');
-    const author = rdf.variable('author');
-    const authorId = rdf.variable('authorId');
-
     const query = sparql
       .select([
-        id,
-        title,
-        description,
-        creationDate,
+        RecipeEntity.id,
+        RecipeEntity.title,
+        RecipeEntity.description,
+        RecipeEntity.creationDate,
         '(group_concat(?ingredient ; separator="|") as ?ingredients)',
-        authorId,
+        RecipeEntity.authorId,
       ])
       .where([
-        [recipe, ns.rdf.type, ns.dvs.Recipe],
-        [recipe, ns.dvs.uuid, id],
-        [recipe, ns.dvs.title, title],
-        [recipe, ns.dvs.description, description],
-        [recipe, ns.dvs.creationDate, creationDate],
-        [recipe, ns.dvs.ingredient, ingredient],
-        [recipe, ns.dvs.createdBy, author],
-        [author, ns.dvs.uuid, authorId],
+        [RecipeEntity.recipe, ns.rdf.type, RecipeEntity.recipeNS],
+        [RecipeEntity.recipe, ns.dvs.uuid, RecipeEntity.id],
+        [RecipeEntity.recipe, ns.dvs.title, RecipeEntity.title],
+        [RecipeEntity.recipe, ns.dvs.description, RecipeEntity.description],
+        [RecipeEntity.recipe, ns.dvs.creationDate, RecipeEntity.creationDate],
+        [RecipeEntity.recipe, ns.dvs.ingredient, RecipeEntity.ingredient],
+        [RecipeEntity.recipe, ns.dvs.createdBy, RecipeEntity.author],
+        [RecipeEntity.author, ns.dvs.uuid, RecipeEntity.authorId],
       ])
-      .groupBy([id, title, description, creationDate, authorId])
+      .groupBy([
+        RecipeEntity.id,
+        RecipeEntity.title,
+        RecipeEntity.description,
+        RecipeEntity.creationDate,
+        RecipeEntity.authorId,
+      ])
       .limit(recipesArgs.take)
       .offset(recipesArgs.take * recipesArgs.skip);
 
     const bindingsStream = await this.queryExecutor(query.toString());
     const bindings = await bindingsStream.toArray();
 
-    return bindings.map((binding) => this.bindingsToModel(binding));
+    return bindings.map((binding) => RecipeEntity.bindingsToModel(binding));
   }
 
   async findManyByAuthorId(authorId: string): Promise<Recipe[]> {
-    const recipe = rdf.variable('recipe');
-    const authorID = rdf.literal(authorId);
-    const id = rdf.variable('id');
-    const title = rdf.variable('title');
-    const description = rdf.variable('description');
-    const creationDate = rdf.variable('creationDate');
-    const ingredient = rdf.variable('ingredient');
-    const author = rdf.variable('author');
-    const bindAuthorId = rdf.variable('authorId');
-
     const query = sparql
       .select([
-        id,
-        title,
-        description,
-        creationDate,
+        RecipeEntity.id,
+        RecipeEntity.title,
+        RecipeEntity.description,
+        RecipeEntity.creationDate,
         '(group_concat(?ingredient ; separator="|") as ?ingredients)',
-        bindAuthorId,
+        RecipeEntity.authorId,
       ])
       .where([
-        [recipe, ns.rdf.type, ns.dvs.Recipe],
-        [recipe, ns.dvs.uuid, id],
-        [recipe, ns.dvs.title, title],
-        [recipe, ns.dvs.description, description],
-        [recipe, ns.dvs.creationDate, creationDate],
-        [recipe, ns.dvs.ingredient, ingredient],
-        [recipe, ns.dvs.createdBy, author],
-        [author, ns.dvs.uuid, authorID],
-        sparql.bind(bindAuthorId, `"${authorId}"`),
+        [RecipeEntity.recipe, ns.rdf.type, RecipeEntity.recipeNS],
+        [RecipeEntity.recipe, ns.dvs.uuid, RecipeEntity.id],
+        [RecipeEntity.recipe, ns.dvs.title, RecipeEntity.title],
+        [RecipeEntity.recipe, ns.dvs.description, RecipeEntity.description],
+        [RecipeEntity.recipe, ns.dvs.creationDate, RecipeEntity.creationDate],
+        [RecipeEntity.recipe, ns.dvs.ingredient, RecipeEntity.ingredient],
+        [RecipeEntity.recipe, ns.dvs.createdBy, RecipeEntity.author],
+        [RecipeEntity.author, ns.dvs.uuid, rdf.literal(authorId)],
+        sparql.bind(RecipeEntity.authorId, `"${authorId}"`),
       ])
-      .groupBy([id, title, description, creationDate, bindAuthorId]);
+      .groupBy([
+        RecipeEntity.id,
+        RecipeEntity.title,
+        RecipeEntity.description,
+        RecipeEntity.creationDate,
+        RecipeEntity.authorId,
+      ]);
 
     const bindingsStream = await this.queryExecutor(query.toString());
     const bindings = await bindingsStream.toArray();
 
-    return bindings.map((binding) => this.bindingsToModel(binding));
+    return bindings.map((binding) => RecipeEntity.bindingsToModel(binding));
   }
 
   async findOneById(recipeId: string): Promise<Recipe> {
-    const recipe = rdf.variable('recipe');
-    const recipeID = rdf.literal(recipeId);
-    const bindRecipeId = rdf.variable('id');
-    const title = rdf.variable('title');
-    const description = rdf.variable('description');
-    const creationDate = rdf.variable('creationDate');
-    const ingredient = rdf.variable('ingredient');
-    const author = rdf.variable('author');
-    const authorId = rdf.variable('authorId');
-
     const query = sparql
       .select([
-        bindRecipeId,
-        title,
-        description,
-        creationDate,
+        RecipeEntity.id,
+        RecipeEntity.title,
+        RecipeEntity.description,
+        RecipeEntity.creationDate,
         '(group_concat(?ingredient ; separator="|") as ?ingredients)',
-        authorId,
+        RecipeEntity.authorId,
       ])
       .where([
-        [recipe, ns.rdf.type, ns.dvs.Recipe],
-        [recipe, ns.dvs.uuid, recipeID],
-        sparql.bind(bindRecipeId, `"${recipeId}"`),
-        [recipe, ns.dvs.title, title],
-        [recipe, ns.dvs.description, description],
-        [recipe, ns.dvs.creationDate, creationDate],
-        [recipe, ns.dvs.ingredient, ingredient],
-        [recipe, ns.dvs.createdBy, author],
-        [author, ns.dvs.uuid, authorId],
+        [RecipeEntity.recipe, ns.rdf.type, RecipeEntity.recipeNS],
+        [RecipeEntity.recipe, ns.dvs.uuid, rdf.literal(recipeId)],
+        sparql.bind(RecipeEntity.id, `"${recipeId}"`),
+        [RecipeEntity.recipe, ns.dvs.title, RecipeEntity.title],
+        [RecipeEntity.recipe, ns.dvs.description, RecipeEntity.description],
+        [RecipeEntity.recipe, ns.dvs.creationDate, RecipeEntity.creationDate],
+        [RecipeEntity.recipe, ns.dvs.ingredient, RecipeEntity.ingredient],
+        [RecipeEntity.recipe, ns.dvs.createdBy, RecipeEntity.author],
+        [RecipeEntity.author, ns.dvs.uuid, RecipeEntity.authorId],
       ])
-      .groupBy([bindRecipeId, title, description, creationDate, authorId]);
+      .groupBy([
+        RecipeEntity.id,
+        RecipeEntity.title,
+        RecipeEntity.description,
+        RecipeEntity.creationDate,
+        RecipeEntity.authorId,
+      ]);
 
     const bindingsStream = await this.queryExecutor(query.toString());
-    const bindings = await bindingsStream.toArray();
+    const [bindings] = await bindingsStream.toArray();
 
-    return this.bindingsToModel(bindings[0]);
+    return RecipeEntity.bindingsToModel(bindings);
   }
 
   async remove(recipeId: string): Promise<boolean> {
-    const recipe = rdf.variable('recipe');
-    const recipeID = rdf.literal(recipeId);
     const allProperties = rdf.variable('allProperties');
     const allValues = rdf.variable('allValues');
 
     const query = sparql.delete().where([
-      [recipe, ns.rdf.type, ns.dvs.Recipe],
-      [recipe, ns.dvs.uuid, recipeID],
-      [recipe, allProperties, allValues],
+      [RecipeEntity.recipe, ns.rdf.type, RecipeEntity.recipeNS],
+      [RecipeEntity.recipe, ns.dvs.uuid, rdf.literal(recipeId)],
+      [RecipeEntity.recipe, allProperties, allValues],
     ]);
 
     await this.updateExecutor(query.toString());
     return true;
-  }
-
-  private bindingsToModel(binding: Bindings): Recipe {
-    const recipe = new Recipe();
-    recipe.id = binding.get('id').value;
-    recipe.title = binding.get('title').value;
-    recipe.description = binding.get('description').value;
-    recipe.creationDate = new Date(binding.get('creationDate').value);
-    recipe.ingredients = binding.get('ingredients').value.split('|');
-    recipe.authorId = binding.get('authorId').value;
-
-    return recipe;
   }
 }
