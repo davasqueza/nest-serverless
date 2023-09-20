@@ -36,7 +36,7 @@ export class SparqlRecipesRepository implements RecipesRepository {
     const recipeEntity = RecipeEntity.modelToRDFTerms(newRecipe);
 
     const query = sparql
-      .delete([
+      .insertData([
         [recipeIRI, ns.rdf.type, RecipeEntity.recipeNS],
         [recipeIRI, ns.dvs.uuid, recipeEntity.id],
         [recipeIRI, ns.dvs.title, recipeEntity.title],
@@ -46,8 +46,7 @@ export class SparqlRecipesRepository implements RecipesRepository {
         [recipeIRI, ns.dvs.createdBy, recipeEntity.author],
         [recipeEntity.author, ns.dvs.hasRecipe, recipeEntity.id],
       ])
-      .toString()
-      .replace(/^DELETE {/, 'INSERT DATA {');
+      .toString();
 
     await this.updateExecutor(query);
 
