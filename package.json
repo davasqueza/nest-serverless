@@ -10,7 +10,7 @@
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "prestart": "yarn run build",
     "start": "npx serverless offline",
-    "start:dev": "nest start --watch",
+    "start:dev": "npm run start -- --stage local",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",

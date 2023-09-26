@@ -1,0 +1,2 @@
+RECIPES_SPARQL_READ_ENDPOINT: http://localhost:3030/recipes/sparql
+RECIPES_SPARQL_WRITE_ENDPOINT: http://localhost:3030/recipes/update

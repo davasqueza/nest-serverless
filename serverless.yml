@@ -98,5 +98,8 @@ functions:
         - !Ref NestPocPrivateSubnet1
         - !Ref NestPocPrivateSubnet2
     environment:
-      RECIPES_SPARQL_READ_ENDPOINT: !Sub 'https://${NestPocNeptuneCluster.ReadEndpoint}:${NestPocNeptuneCluster.Port}/sparql'
-      RECIPES_SPARQL_WRITE_ENDPOINT: !Sub 'https://${NestPocNeptuneCluster.Endpoint}:${NestPocNeptuneCluster.Port}/sparql'
+      RECIPES_SPARQL_READ_ENDPOINT: ${self:custom.config.RECIPES_SPARQL_READ_ENDPOINT}
+      RECIPES_SPARQL_WRITE_ENDPOINT: ${self:custom.config.RECIPES_SPARQL_WRITE_ENDPOINT}
+
+custom:
+  config: ${file(env/${sls:stage}-${aws:region}.yml)}

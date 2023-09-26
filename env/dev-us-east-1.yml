@@ -1,0 +1,2 @@
+RECIPES_SPARQL_READ_ENDPOINT: !Sub "https://${NestPocNeptuneCluster.ReadEndpoint}:${NestPocNeptuneCluster.Port}/sparql"
+RECIPES_SPARQL_WRITE_ENDPOINT: !Sub "https://${NestPocNeptuneCluster.Endpoint}:${NestPocNeptuneCluster.Port}/sparql"
